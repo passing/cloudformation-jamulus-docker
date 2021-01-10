@@ -1,0 +1,379 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Template for Jamulus Server using Docker",
+
+  "Parameters" : {
+    "InstanceType" : {
+      "Description" : "JamulusServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "t3.nano",
+      "AllowedValues" : [ "t3.nano", "t3.micro", "t3.small", "t3a.nano", "t3a.micro", "t3a.small", "c5.large" ],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type" : "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+
+    "SSHLocation" : {
+      "Description" : "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+
+    "JamulusVersion" : {
+      "Default": "latest",
+      "Description" : "Jamulus Docker image tag / version",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "1024",
+      "AllowedPattern" : "[^\\s]*",
+      "ConstraintDescription" : "must not contain spaces."
+    },
+
+    "JamulusServerArguments" : {
+      "Default": "--numchannels 10 --multithreading --fastupdate",
+      "Description" : "Jamulus Server Arguments",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "JamulusServerWelcomeMessage" : {
+      "Default": "hello world",
+      "Description" : "Jamulus Server Message",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "NoIpHostname" : {
+      "Default": "",
+      "Description" : "NoIp Hostname",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+    
+    "NoIpUsername" : {
+      "Default": "",
+      "Description" : "NoIp Username",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+    
+    "NoIpPassword" : {
+      "Default": "",
+      "Description" : "NoIp Password",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "ServerInfoCity" : {
+      "Default": "Frankfurt",
+      "Description" : "NoIp Password",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "ServerInfoLocale" : {
+      "Default": "82",
+      "Description" : "NoIp Password",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    }
+  },
+
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t3.nano"     : { "Arch" : "HVM64"  },
+      "t3.micro"    : { "Arch" : "HVM64"  },
+      "t3.small"    : { "Arch" : "HVM64"  },
+      "t3a.nano"    : { "Arch" : "HVM64"  },
+      "t3a.micro"   : { "Arch" : "HVM64"  },
+      "t3a.small"   : { "Arch" : "HVM64"  },
+      "c5.large"    : { "Arch" : "HVM64"  }
+    },
+
+    "AWSInstanceType2NATArch" : {
+      "t3.nano"     : { "Arch" : "NATHVM64"  },
+      "t3.micro"    : { "Arch" : "NATHVM64"  },
+      "t3.small"    : { "Arch" : "NATHVM64"  },
+      "t3a.nano"    : { "Arch" : "NATHVM64"  },
+      "t3a.micro"   : { "Arch" : "NATHVM64"  },
+      "t3a.small"   : { "Arch" : "NATHVM64"  },
+      "c5.large"    : { "Arch" : "NATHVM64"  }
+    }
+,
+    "AWSRegionArch2AMI" : {
+      "af-south-1"       : {"HVM64" : "ami-064cc455f8a1ef504", "HVMG2" : "NOT_SUPPORTED"},
+      "ap-east-1"        : {"HVM64" : "ami-f85b1989", "HVMG2" : "NOT_SUPPORTED"},
+      "ap-northeast-1"   : {"HVM64" : "ami-0b2c2a754d5b4da22", "HVMG2" : "ami-09d0e0e099ecabba2"},
+      "ap-northeast-2"   : {"HVM64" : "ami-0493ab99920f410fc", "HVMG2" : "NOT_SUPPORTED"},
+      "ap-northeast-3"   : {"HVM64" : "ami-01344f6f63a4decc1", "HVMG2" : "NOT_SUPPORTED"},
+      "ap-south-1"       : {"HVM64" : "ami-03cfb5e1fb4fac428", "HVMG2" : "ami-0244c1d42815af84a"},
+      "ap-southeast-1"   : {"HVM64" : "ami-0ba35dc9caf73d1c7", "HVMG2" : "ami-0e46ce0d6a87dc979"},
+      "ap-southeast-2"   : {"HVM64" : "ami-0ae99b503e8694028", "HVMG2" : "ami-0c0ab057a101d8ff2"},
+      "ca-central-1"     : {"HVM64" : "ami-0803e21a2ec22f953", "HVMG2" : "NOT_SUPPORTED"},
+      "cn-north-1"       : {"HVM64" : "ami-07a3f215cc90c889c", "HVMG2" : "NOT_SUPPORTED"},
+      "cn-northwest-1"   : {"HVM64" : "ami-0a3b3b10f714a0ff4", "HVMG2" : "NOT_SUPPORTED"},
+      "eu-central-1"     : {"HVM64" : "ami-0474863011a7d1541", "HVMG2" : "ami-0aa1822e3eb913a11"},
+      "eu-north-1"       : {"HVM64" : "ami-0de4b8910494dba0f", "HVMG2" : "ami-32d55b4c"},
+      "eu-south-1"       : {"HVM64" : "ami-08427144fe9ebdef6", "HVMG2" : "NOT_SUPPORTED"},
+      "eu-west-1"        : {"HVM64" : "ami-015232c01a82b847b", "HVMG2" : "ami-0d5299b1c6112c3c7"},
+      "eu-west-2"        : {"HVM64" : "ami-0765d48d7e15beb93", "HVMG2" : "NOT_SUPPORTED"},
+      "eu-west-3"        : {"HVM64" : "ami-0caf07637eda19d9c", "HVMG2" : "NOT_SUPPORTED"},
+      "me-south-1"       : {"HVM64" : "ami-0744743d80915b497", "HVMG2" : "NOT_SUPPORTED"},
+      "sa-east-1"        : {"HVM64" : "ami-0a52e8a6018e92bb0", "HVMG2" : "NOT_SUPPORTED"},
+      "us-east-1"        : {"HVM64" : "ami-032930428bf1abbff", "HVMG2" : "ami-0aeb704d503081ea6"},
+      "us-east-2"        : {"HVM64" : "ami-027cab9a7bf0155df", "HVMG2" : "NOT_SUPPORTED"},
+      "us-west-1"        : {"HVM64" : "ami-088c153f74339f34c", "HVMG2" : "ami-0a7fc72dc0e51aa77"},
+      "us-west-2"        : {"HVM64" : "ami-01fee56b22f308154", "HVMG2" : "ami-0fe84a5b4563d8f27"}
+    }
+
+  },
+
+  "Resources" : {
+    "JamulusServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "JamulusSetup" : ["install_cfn", "install_docker", "configure_jamulus", "configure_noip" ]
+          },
+          "install_cfn" : {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": { "Fn::Join": [ "", [
+                  "[main]\n",
+                  "stack=", { "Ref": "AWS::StackId" }, "\n",
+                  "region=", { "Ref": "AWS::Region" }, "\n"
+                ]]},
+                "mode"  : "000400",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": { "Fn::Join": [ "", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.JamulusServer.Metadata.AWS::CloudFormation::Init\n",
+                  "action=/opt/aws/bin/cfn-init -v ",
+                          "         --stack ", { "Ref" : "AWS::StackName" },
+                          "         --resource JamulusServer ",
+                          "         --configsets JamulusSetup ",
+                          "         --region ", { "Ref" : "AWS::Region" }, "\n"
+                ]]},          
+                "mode"  : "000400",
+                "owner" : "root",
+                "group" : "root"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
+                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"] }
+              }
+            }
+          },
+
+          "install_docker" : {
+            "packages" : {
+              "yum" : {
+                "docker" : []
+              }
+            },
+            "commands" : {
+              "01_add_ec2-user_to_docker_group": {
+                "command": "usermod -a -G docker ec2-user"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "docker" : { "enabled" : "true", "ensureRunning" : "true" }
+              }
+            }
+          },
+
+          "configure_jamulus" : {
+            "files" : {
+              "/etc/jamulus/server.conf" : {
+                "content" : { "Fn::Join" : [ "\n", [
+                  "--server",
+                  "--centralserver localhost",
+                  "--serverinfo",
+                  { "Fn::Join" : [ ";", [ { "Ref": "NoIpHostname"}, { "Ref": "ServerInfoCity"}, { "Ref": "ServerInfoLocale"}]] },
+                  "--welcomemessage /etc/jamulus/welcomemessage.html",
+                  { "Ref" : "JamulusServerArguments" }
+                  ] ] },
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/jamulus/welcomemessage.html" : {
+                "content" : { "Ref" : "JamulusServerWelcomeMessage" },
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/usr/local/bin/jamulus_start" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  { "Fn::Join" : [" ", [
+                    "docker run",
+                    "--detach",
+                    "--name jamulus",
+                    "--restart=always",
+                    "--net=host",
+                    "--entrypoint=''",
+                    "--volume=/etc/jamulus:/etc/jamulus",
+                    { "Fn::Join" : ["", ["grundic/jamulus:", { "Ref" : "JamulusVersion" }]] },
+                    "xargs -a /etc/jamulus/server.conf Jamulus"
+                    ]]}
+                ]]},
+                "mode"  : "000755",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/usr/local/bin/jamulus_stop" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  "docker stop jamulus",
+                  "docker rm jamulus"
+                ]]},
+                "mode"  : "000755",
+                "owner" : "root",
+                "group" : "root"
+              }
+
+            },
+            "commands" : {
+              "01_start_jamulus" : {
+                "command" : "/usr/local/bin/jamulus_start"
+              }
+            }
+          },
+
+          "configure_noip" : {
+            "packages" : {
+              "yum" : {
+                "curl" : []
+              }
+            },
+            "files" : {
+              "/usr/local/bin/noip_update" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  { "Fn::Join" : [" ", [
+                    "curl",
+                    "-G",
+                    "-u", { "Fn::Join" : [":", [{ "Ref": "NoIpUsername" }, { "Ref": "NoIpPassword" }]]},
+                    "-d", { "Fn::Join" : ["=", ["hostname", { "Ref": "NoIpHostname" }]]},
+                    "-d", { "Fn::Join" : ["=", ["myip", { "Ref" : "IPAddress" }]]},
+                    "https://dynupdate.no-ip.com/nic/update"
+                  ]]}
+                ]]},
+                "mode"  : "000555",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/cron.weekly/noip_update" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  "/usr/local/bin/noip_update"
+                ]]},
+                "mode"  : "000500",
+                "owner" : "root",
+                "group" : "root"
+              }
+            },
+            "commands" : {
+              "01_run_noip_update" : {
+                "command" : "/usr/local/bin/noip_update"
+              }
+            }
+          }
+        }
+      },
+
+      "Properties" : {
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        "KeyName" : { "Ref" : "KeyName" },
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
+        ],
+        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -xe\n",
+          "yum -y update aws-cfn-bootstrap\n",
+
+          "# Install the files and packages from the metadata\n",
+          "/opt/aws/bin/cfn-init ",
+          "         --stack ", { "Ref" : "AWS::StackName" },
+          "         --resource JamulusServer ",
+          "         --configsets JamulusSetup ",
+          "         --region ", { "Ref" : "AWS::Region" }, "\n",
+
+          "# Signal the status from cfn-init\n",
+          "/opt/aws/bin/cfn-signal -e $? ",
+          "         --stack ", { "Ref" : "AWS::StackName" },
+          "         --resource JamulusServer ",
+          "         --region ", { "Ref" : "AWS::Region" }, "\n"
+        ]]}},
+        "Monitoring": true        
+      },
+      "CreationPolicy" : {
+        "ResourceSignal" : {
+          "Timeout" : "PT5M"
+        }
+      }
+    },
+
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH and Jamulus server access",
+        "SecurityGroupIngress" : 
+          [
+            { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"} },
+            { "IpProtocol" : "udp", "FromPort" : "22124", "ToPort" : "22124", "CidrIp" : "0.0.0.0/0" }
+          ]
+      }
+    },
+
+    "IPAddress" : {
+      "Type" : "AWS::EC2::EIP"
+    },
+
+    "IPAssoc" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "InstanceId" : { "Ref" : "JamulusServer" },
+        "EIP" : { "Ref" : "IPAddress" }
+      }
+    }
+  },
+  "Outputs" : {
+    "InstanceId" : {
+      "Description" : "InstanceId of the newly created Jamulus Server",
+      "Value" : { "Ref" : "JamulusServer" }
+    },
+    "InstanceIPAddress" : {
+      "Description" : "IP address of the newly created Jamulus Server",
+      "Value" : { "Ref" : "IPAddress" }
+    }
+  }
+}
