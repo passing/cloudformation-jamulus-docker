@@ -12,6 +12,13 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
+    "InstanceCreditSpecification" : {
+      "Description" : "JamulusServer EC2 instance credit option",
+      "Type" : "String",
+      "Default" : "standard",
+      "AllowedValues" : [ "standard", "unlimited" ]
+    },
+
     "KeyName" : {
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
       "Type" : "AWS::EC2::KeyPair::KeyName",
@@ -39,11 +46,35 @@
     },
 
     "JamulusServerArguments" : {
-      "Default": "--numchannels 10 --multithreading --fastupdate",
+      "Default": "--numchannels 20 --multithreading --fastupdate",
       "Description" : "Jamulus Server Arguments",
       "Type": "String",
       "MinLength": "0",
       "MaxLength": "1024"
+    },
+
+    "JamulusServerInfoName" : {
+      "Default": "Jamulus Server",
+      "Description" : "Jamulus Server Name",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "JamulusServerInfoCity" : {
+      "Default": "Frankfurt",
+      "Description" : "Jamulus Server Location Information - City",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024"
+    },
+
+    "JamulusServerInfoLocale" : {
+      "Default": "82",
+      "Description" : "Jamulus Server Location Information - Country Number (https://doc.qt.io/qt-5/qlocale.html#Country-enum)",
+      "Type": "Number",
+      "MinValue": "0",
+      "MaxValue": "1024"
     },
 
     "JamulusServerWelcomeMessage" : {
@@ -75,23 +106,8 @@
       "Description" : "NoIp Password",
       "Type": "String",
       "MinLength": "0",
-      "MaxLength": "1024"
-    },
-
-    "ServerInfoCity" : {
-      "Default": "Frankfurt",
-      "Description" : "NoIp Password",
-      "Type": "String",
-      "MinLength": "0",
-      "MaxLength": "1024"
-    },
-
-    "ServerInfoLocale" : {
-      "Default": "82",
-      "Description" : "NoIp Password",
-      "Type": "String",
-      "MinLength": "0",
-      "MaxLength": "1024"
+      "MaxLength": "1024",
+      "NoEcho": "true"
     }
   },
 
@@ -213,10 +229,14 @@
                   "--server",
                   "--centralserver localhost",
                   "--serverinfo",
-                  { "Fn::Join" : [ ";", [ { "Ref": "NoIpHostname"}, { "Ref": "ServerInfoCity"}, { "Ref": "ServerInfoLocale"}]] },
+                  { "Fn::Join" : [ ";", [
+                    { "Ref": "JamulusServerInfoName"},
+                    { "Ref": "JamulusServerInfoCity"},
+                    { "Ref": "JamulusServerInfoLocale"}
+                  ]]},
                   "--welcomemessage /etc/jamulus/welcomemessage.html",
                   { "Ref" : "JamulusServerArguments" }
-                  ] ] },
+                ]]},
                 "mode"  : "000644",
                 "owner" : "root",
                 "group" : "root"
@@ -237,10 +257,12 @@
                     "--restart=always",
                     "--net=host",
                     "--entrypoint=''",
-                    "--volume=/etc/jamulus:/etc/jamulus",
+                    "--cap-add=sys_nice",
+                    "--volume=/etc/jamulus:/etc/jamulus:ro",
                     { "Fn::Join" : ["", ["grundic/jamulus:", { "Ref" : "JamulusVersion" }]] },
-                    "xargs -a /etc/jamulus/server.conf Jamulus"
-                    ]]}
+                    "xargs -a /etc/jamulus/server.conf nice -n -20 Jamulus"
+                  ]]},
+                  ""
                 ]]},
                 "mode"  : "000755",
                 "owner" : "root",
@@ -250,7 +272,18 @@
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
                   "docker stop jamulus",
-                  "docker rm jamulus"
+                  "docker rm jamulus",
+                  ""
+                ]]},
+                "mode"  : "000755",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/usr/local/bin/jamulus_restart" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  "docker restart jamulus",
+                  ""
                 ]]},
                 "mode"  : "000755",
                 "owner" : "root",
@@ -272,7 +305,7 @@
               }
             },
             "files" : {
-              "/usr/local/bin/noip_update" : {
+              "/usr/local/sbin/noip_update" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
                   { "Fn::Join" : [" ", [
@@ -282,16 +315,18 @@
                     "-d", { "Fn::Join" : ["=", ["hostname", { "Ref": "NoIpHostname" }]]},
                     "-d", { "Fn::Join" : ["=", ["myip", { "Ref" : "IPAddress" }]]},
                     "https://dynupdate.no-ip.com/nic/update"
-                  ]]}
+                  ]]},
+                  ""
                 ]]},
-                "mode"  : "000555",
+                "mode"  : "000700",
                 "owner" : "root",
                 "group" : "root"
               },
               "/etc/cron.weekly/noip_update" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  "/usr/local/bin/noip_update"
+                  "/usr/local/sbin/noip_update",
+                  ""
                 ]]},
                 "mode"  : "000500",
                 "owner" : "root",
@@ -300,7 +335,7 @@
             },
             "commands" : {
               "01_run_noip_update" : {
-                "command" : "/usr/local/bin/noip_update"
+                "command" : "/usr/local/sbin/noip_update"
               }
             }
           }
@@ -311,6 +346,7 @@
         "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
         "InstanceType" : { "Ref" : "InstanceType" },
+        "CreditSpecification": { "Ref": "InstanceCreditSpecification" },
         "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
         "KeyName" : { "Ref" : "KeyName" },
         "Tags": [
