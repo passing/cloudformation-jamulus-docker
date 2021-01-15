@@ -15,7 +15,7 @@
     "InstanceCreditSpecification" : {
       "Description" : "JamulusServer EC2 instance credit option",
       "Type" : "String",
-      "Default" : "standard",
+      "Default" : "unlimited",
       "AllowedValues" : [ "standard", "unlimited" ]
     },
 
@@ -247,14 +247,14 @@
                 "owner" : "root",
                 "group" : "root"
               },
-              "/usr/local/bin/jamulus_start" : {
+              "/usr/local/bin/jamulus_create" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
                   { "Fn::Join" : [" ", [
-                    "docker run",
-                    "--detach",
+                    "docker container create",
                     "--name jamulus",
                     "--restart=always",
+                    "--stop-timeout=0",
                     "--net=host",
                     "--entrypoint=''",
                     "--cap-add=sys_nice",
@@ -268,11 +268,20 @@
                 "owner" : "root",
                 "group" : "root"
               },
+              "/usr/local/bin/jamulus_start" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "#!/bin/bash",
+                  "docker container start jamulus",
+                  ""
+                ]]},
+                "mode"  : "000755",
+                "owner" : "root",
+                "group" : "root"
+              },
               "/usr/local/bin/jamulus_stop" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  "docker stop jamulus",
-                  "docker rm jamulus",
+                  "docker container stop jamulus",
                   ""
                 ]]},
                 "mode"  : "000755",
@@ -282,7 +291,7 @@
               "/usr/local/bin/jamulus_restart" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  "docker restart jamulus",
+                  "docker container restart jamulus",
                   ""
                 ]]},
                 "mode"  : "000755",
@@ -292,7 +301,11 @@
 
             },
             "commands" : {
-              "01_start_jamulus" : {
+              "01_jamulus_create" : {
+                "command" : "/usr/local/bin/jamulus_create",
+                "test": "! docker container inspect jamulus -f '{{ .Name }}'"
+              },
+              "02_jamulus_start": {
                 "command" : "/usr/local/bin/jamulus_start"
               }
             }
@@ -346,7 +359,7 @@
         "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
         "InstanceType" : { "Ref" : "InstanceType" },
-        "CreditSpecification": { "Ref": "InstanceCreditSpecification" },
+        "CreditSpecification": { "CPUCredits" : { "Ref": "InstanceCreditSpecification" } },
         "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
         "KeyName" : { "Ref" : "KeyName" },
         "Tags": [
