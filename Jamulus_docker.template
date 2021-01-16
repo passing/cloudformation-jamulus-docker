@@ -35,9 +35,9 @@
       "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
 
-    "JamulusVersion" : {
-      "Default": "latest",
-      "Description" : "Jamulus Docker image tag / version",
+    "JamulusCentralServer" : {
+      "Default": "localhost",
+      "Description" : "Jamulus host of Central Server",
       "Type": "String",
       "MinLength": "1",
       "MaxLength": "1024",
@@ -45,8 +45,16 @@
       "ConstraintDescription" : "must not contain spaces."
     },
 
+    "JamulusChannels" : {
+      "Default": "20",
+      "Description" : "Jamulus maximum number of users",
+      "Type": "Number",
+      "MinValue": "1",
+      "MaxValue": "50"
+    },
+
     "JamulusServerArguments" : {
-      "Default": "--numchannels 20 --multithreading --fastupdate",
+      "Default": "--multithreading --fastupdate",
       "Description" : "Jamulus Server Arguments",
       "Type": "String",
       "MinLength": "0",
@@ -83,6 +91,16 @@
       "Type": "String",
       "MinLength": "0",
       "MaxLength": "1024"
+    },
+
+    "JamulusVersion" : {
+      "Default": "latest",
+      "Description" : "Jamulus Docker image tag / version",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "1024",
+      "AllowedPattern" : "[^\\s]*",
+      "ConstraintDescription" : "must not contain spaces."
     },
 
     "NoIpHostname" : {
@@ -227,12 +245,17 @@
               "/etc/jamulus/server.conf" : {
                 "content" : { "Fn::Join" : [ "\n", [
                   "--server",
-                  "--centralserver localhost",
+                  "--numchannels", { "Ref" : "JamulusChannels" },
+                  "--centralserver", { "Ref" : "JamulusCentralServer" },
                   "--serverinfo",
-                  { "Fn::Join" : [ ";", [
-                    { "Ref": "JamulusServerInfoName"},
-                    { "Ref": "JamulusServerInfoCity"},
-                    { "Ref": "JamulusServerInfoLocale"}
+                  { "Fn::Join" : [ "", [
+                    "\"",
+                    { "Fn::Join" : [ ";", [
+                      { "Ref": "JamulusServerInfoName" },
+                      { "Ref": "JamulusServerInfoCity" },
+                      { "Ref": "JamulusServerInfoLocale" }
+                    ]]},
+                    "\""
                   ]]},
                   "--welcomemessage /etc/jamulus/welcomemessage.html",
                   { "Ref" : "JamulusServerArguments" }
