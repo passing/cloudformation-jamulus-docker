@@ -245,20 +245,23 @@
               "/etc/jamulus/server.conf" : {
                 "content" : { "Fn::Join" : [ "\n", [
                   "--server",
-                  "--numchannels", { "Ref" : "JamulusChannels" },
-                  "--centralserver", { "Ref" : "JamulusCentralServer" },
-                  "--serverinfo",
-                  { "Fn::Join" : [ "", [
-                    "\"",
-                    { "Fn::Join" : [ ";", [
-                      { "Ref": "JamulusServerInfoName" },
-                      { "Ref": "JamulusServerInfoCity" },
-                      { "Ref": "JamulusServerInfoLocale" }
-                    ]]},
-                    "\""
+                  { "Fn::Join" : [ " ", ["--numchannels", { "Ref" : "JamulusChannels" } ]]},
+                  { "Fn::Join" : [ " ", ["--centralserver", { "Ref" : "JamulusCentralServer" } ]]},
+                  { "Fn::Join" : [ " ", [
+                    "--serverinfo",
+                    { "Fn::Join" : [ "", [
+                      "\"",
+                      { "Fn::Join" : [ ";", [
+                        { "Ref": "JamulusServerInfoName" },
+                        { "Ref": "JamulusServerInfoCity" },
+                        { "Ref": "JamulusServerInfoLocale" }
+                      ]]},
+                      "\""
+                    ]]}
                   ]]},
                   "--welcomemessage /etc/jamulus/welcomemessage.html",
-                  { "Ref" : "JamulusServerArguments" }
+                  { "Ref" : "JamulusServerArguments" },
+                  ""
                 ]]},
                 "mode"  : "000644",
                 "owner" : "root",
@@ -291,30 +294,95 @@
                 "owner" : "root",
                 "group" : "root"
               },
-              "/usr/local/bin/jamulus_start" : {
+              "/etc/init.d/jamulus" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  "docker container start jamulus",
-                  ""
-                ]]},
-                "mode"  : "000755",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/usr/local/bin/jamulus_stop" : {
-                "content" : { "Fn::Join" : ["\n", [
-                  "#!/bin/bash",
-                  "docker container stop jamulus",
-                  ""
-                ]]},
-                "mode"  : "000755",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/usr/local/bin/jamulus_restart" : {
-                "content" : { "Fn::Join" : ["\n", [
-                  "#!/bin/bash",
-                  "docker container restart jamulus",
+                  "#",
+                  "# Jamulus Server",
+                  "#",
+                  "",
+                  "### BEGIN INIT INFO",
+                  "# Provides:       jamulus",
+                  "# Required-Start: docker",
+                  "# Required-Stop:  docker",
+                  "# Should-Start:",
+                  "# Should-Stop:",
+                  "# Default-Start: 2 3 4 5",
+                  "# Default-Stop:  0 1 6",
+                  "# Short-Description: start and stop jamulus",
+                  "# Description: Jamulus Server",
+                  "### END INIT INFO",
+                  "",
+                  "# source function library",
+                  ". /etc/rc.d/init.d/functions",
+                  "",
+                  "prog=\"jamulus\"",
+                  "",
+                  "RETVAL=0",
+                  "",
+                  "start() {",
+                  "        printf \"Starting $prog:\\t\"",
+                  "        if docker container start jamulus &> /dev/null",
+                  "        then",
+                  "                success",
+                  "        else",
+                  "                failure",
+                  "        fi",
+                  "        echo",
+                  "}",
+                  "",
+                  "stop() {",
+                  "        printf \"Stopping $prog:\\t\"",
+                  "        if docker container stop jamulus &> /dev/null",
+                  "        then",
+                  "                success",
+                  "        else",
+                  "                failure",
+                  "        fi",
+                  "        echo",
+                  "}",
+                  "",
+                  "restart() {",
+                  "        printf \"Restarting $prog\\t\"",
+                  "        if docker container restart jamulus &> /dev/null",
+                  "        then",
+                  "                success",
+                  "        else",
+                  "                failure",
+                  "        fi",
+                  "        echo",
+                  "}",
+                  "",
+                  "status() {",
+                  "        if [ `docker inspect jamulus --format='{{.State.Status}}'` == \"running\" ]",
+                  "        then",
+                  "                echo $\"jamulus is running...\"",
+                  "                RETVAL=0",
+                  "        else",
+                  "                echo $\"jamulus is not running...\"",
+                  "                RETVAL=1",
+                  "        fi",
+                  "}",
+                  "",
+                  "case \"$1\" in",
+                  "  start)",
+                  "        start",
+                  "        ;;",
+                  "  stop)",
+                  "        stop",
+                  "        ;;",
+                  "  restart|force-reload|reload)",
+                  "        restart",
+                  "        ;;",
+                  "  status)",
+                  "        status",
+                  "        ;;",
+                  "  *)",
+                  "        echo $\"Usage: $0 {start|stop|status|restart}\"",
+                  "        exit 1",
+                  "esac",
+                  "",
+                  "exit $RETVAL",
                   ""
                 ]]},
                 "mode"  : "000755",
@@ -327,9 +395,18 @@
               "01_jamulus_create" : {
                 "command" : "/usr/local/bin/jamulus_create",
                 "test": "! docker container inspect jamulus -f '{{ .Name }}'"
-              },
-              "02_jamulus_start": {
-                "command" : "/usr/local/bin/jamulus_start"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "jamulus" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : [
+                    "/etc/jamulus/server.conf",
+                    "/etc/jamulus/welcomemessage.html"
+                  ]
+                }
               }
             }
           },
@@ -344,14 +421,12 @@
               "/usr/local/sbin/noip_update" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  { "Fn::Join" : [" ", [
-                    "curl",
-                    "-G",
-                    "-u", { "Fn::Join" : [":", [{ "Ref": "NoIpUsername" }, { "Ref": "NoIpPassword" }]]},
-                    "-d", { "Fn::Join" : ["=", ["hostname", { "Ref": "NoIpHostname" }]]},
-                    "-d", { "Fn::Join" : ["=", ["myip", { "Ref" : "IPAddress" }]]},
-                    "https://dynupdate.no-ip.com/nic/update"
-                  ]]},
+                  { "Fn::Join" : ["=", [ "username", { "Ref": "NoIpUsername" } ]]},
+                  { "Fn::Join" : ["=", [ "password", { "Ref": "NoIpPassword" } ]]},
+                  { "Fn::Join" : ["=", [ "hostname", { "Ref": "NoIpHostname" } ]]},
+                  { "Fn::Join" : ["=", [ "myip", { "Ref": "IPAddress" } ]]},
+                  "",
+                  "curl -G -u $username:$password -d hostname=$hostname -d myip=$myip https://dynupdate.no-ip.com/nic/update",
                   ""
                 ]]},
                 "mode"  : "000700",
