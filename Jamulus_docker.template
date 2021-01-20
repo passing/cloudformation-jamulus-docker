@@ -184,11 +184,29 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets" : {
-            "JamulusSetup" : ["install_cfn", "install_docker", "configure_jamulus", "configure_noip" ]
+            "default" : [
+              { "ConfigSet" : "CfnSetup" },
+              { "ConfigSet" : "JamulusSetup" },
+              { "ConfigSet" : "NoIpSetup" },
+              { "ConfigSet" : "Fail2BanSetup" }
+            ],
+            "CfnSetup" : [
+              "install_cfn"
+            ],
+            "JamulusSetup" : [
+              "install_docker",
+              "configure_jamulus"
+            ],
+            "NoIpSetup" : [
+              "install_noip"
+            ],
+            "Fail2BanSetup" : [
+              "install_fail2ban"
+            ]
           },
           "install_cfn" : {
             "files": {
-              "/etc/cfn/cfn-hup.conf": {
+              "/etc/cfn/cfn-hup.conf" : {
                 "content": { "Fn::Join": [ "", [
                   "[main]\n",
                   "stack=", { "Ref": "AWS::StackId" }, "\n",
@@ -206,7 +224,6 @@
                   "action=/opt/aws/bin/cfn-init -v ",
                           "         --stack ", { "Ref" : "AWS::StackName" },
                           "         --resource JamulusServer ",
-                          "         --configsets JamulusSetup ",
                           "         --region ", { "Ref" : "AWS::Region" }, "\n"
                 ]]},          
                 "mode"  : "000400",
@@ -216,8 +233,14 @@
             },
             "services" : {
               "sysvinit" : {
-                "cfn-hup" : { "enabled" : "true", "ensureRunning" : "true",
-                              "files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"] }
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
               }
             }
           },
@@ -235,7 +258,10 @@
             },
             "services" : {
               "sysvinit" : {
-                "docker" : { "enabled" : "true", "ensureRunning" : "true" }
+                "docker" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true"
+                }
               }
             }
           },
@@ -411,7 +437,7 @@
             }
           },
 
-          "configure_noip" : {
+          "install_noip" : {
             "packages" : {
               "yum" : {
                 "curl" : []
@@ -449,6 +475,60 @@
                 "command" : "/usr/local/sbin/noip_update"
               }
             }
+          },
+
+          "install_fail2ban" : {
+            "packages" : {
+              "yum" : {
+                "fail2ban" : []
+              }
+            },
+            "files": {
+              "/etc/fail2ban/jail.conf" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "[ssh-iptables]",
+                  "enabled  = true",
+                  "filter   = sshd",
+                  "action   = iptables[name=SSH, port=ssh, protocol=tcp]",
+                  "logpath  = /var/log/secure",
+                  "ignoreip = 127.0.0.1/8",
+                  "bantime  = 600",
+                  "findtime = 600",
+                  "maxretry = 0",
+                  ""
+                ]]},
+                "mode"  : "000700",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/fail2ban/filter.d/sshd.conf" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "[INCLUDES]",
+                  "before = common.conf",
+                  "[Definition]",
+                  "_daemon = sshd",
+                  "failregex = ^%(__prefix_line)sInvalid user .* from <HOST> port \\d*\\s*$",
+                  "            ^%(__prefix_line)serror: maximum authentication attempts exceeded for .* from <HOST> port \\d* ssh2 \\[preauth\\]\\s*$",
+                  "ignoreregex =",
+                  ""
+                ]]},
+                "mode"  : "000700",
+                "owner" : "root",
+                "group" : "root"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "fail2ban" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : [
+                    "/etc/fail2ban/jail.conf",
+                    "/etc/fail2ban/filter.d/sshd.conf"
+                  ]
+                }
+              }
+            }
           }
         }
       },
@@ -471,7 +551,6 @@
           "/opt/aws/bin/cfn-init ",
           "         --stack ", { "Ref" : "AWS::StackName" },
           "         --resource JamulusServer ",
-          "         --configsets JamulusSetup ",
           "         --region ", { "Ref" : "AWS::Region" }, "\n",
 
           "# Signal the status from cfn-init\n",
@@ -480,7 +559,7 @@
           "         --resource JamulusServer ",
           "         --region ", { "Ref" : "AWS::Region" }, "\n"
         ]]}},
-        "Monitoring": true        
+        "Monitoring": false
       },
       "CreationPolicy" : {
         "ResourceSignal" : {
