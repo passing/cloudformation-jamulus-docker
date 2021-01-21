@@ -129,6 +129,16 @@
     }
   },
 
+  "Conditions" : {
+    "SetupNoIp" : {
+      "Fn::And" : [
+        { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NoIpHostname" }, "" ] } ] },
+        { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NoIpUsername" }, "" ] } ] },
+        { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "NoIpPassword" }, "" ] } ] }
+      ]
+    }
+  },
+
   "Mappings" : {
     "AWSInstanceType2Arch" : {
       "t3.nano"     : { "Arch" : "HVM64"  },
@@ -190,19 +200,10 @@
               { "ConfigSet" : "NoIpSetup" },
               { "ConfigSet" : "Fail2BanSetup" }
             ],
-            "CfnSetup" : [
-              "install_cfn"
-            ],
-            "JamulusSetup" : [
-              "install_docker",
-              "configure_jamulus"
-            ],
-            "NoIpSetup" : [
-              "install_noip"
-            ],
-            "Fail2BanSetup" : [
-              "install_fail2ban"
-            ]
+            "CfnSetup"      : [ "install_cfn" ],
+            "JamulusSetup"  : [ "install_docker", "configure_jamulus" ],
+            "NoIpSetup"     : { "Fn::If" : [ "SetupNoIp", [ "install_noip" ], [] ] },
+            "Fail2BanSetup" : [ "install_fail2ban" ]
           },
           "install_cfn" : {
             "files": {
