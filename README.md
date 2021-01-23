@@ -35,7 +35,7 @@ Fail2ban is setup to block IPs after failed SSH authentication attempts.
 ### CPU
 
 A `t3.nano` instance with 2 vCPUs gets ~ 25 % of CPU utilization with 10 clients connected. So it should be able to handle quite a few more.  
-Just be aware that when exceeding the CPU credits included with your instance, you have to pay for the additional ones or the CPUs get throttled if you don't run the instance in 'unlimited' mode.
+Just be aware that when exceeding the CPU credits included with your instance, you have to pay for the additional ones or the CPUs get throttled if you don't run the instance in `unlimited` mode.
 
 ### Memory
 
@@ -44,7 +44,7 @@ Using a `t3.nano` instance with only 0.5 GiB of memory is sufficient by far.
 
 ## Costs
 
-Below calculations are based on prices for the AWS Region eu-central-1` (Frankfurt).  
+Below calculations are based on prices for the AWS Region eu-central-1 (Frankfurt).  
 For other Regions, see pricing for [EC2](https://aws.amazon.com/ec2/pricing/on-demand) and [EBS](https://aws.amazon.com/ebs/pricing/)
 
 ### Fixed Costs
