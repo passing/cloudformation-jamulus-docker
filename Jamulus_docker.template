@@ -8,7 +8,17 @@
       "Description" : "JamulusServer EC2 instance type",
       "Type" : "String",
       "Default" : "t3.nano",
-      "AllowedValues" : [ "t3.nano", "t3.micro", "t3.small", "t3a.nano", "t3a.micro", "t3a.small" ],
+      "AllowedValues" : [
+        "t2.nano",
+        "t2.micro",
+        "t2.small",
+        "t3.nano",
+        "t3.micro",
+        "t3.small",
+        "t3a.nano",
+        "t3a.micro",
+        "t3a.small"
+      ],
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
@@ -17,6 +27,14 @@
       "Type" : "String",
       "Default" : "unlimited",
       "AllowedValues" : [ "standard", "unlimited" ]
+    },
+
+    "InstanceRootVolume" : {
+      "Default": "8",
+      "Description" : "JamulusServer EC2 instance root volume (GB)",
+      "Type": "Number",
+      "MinValue": "8",
+      "MaxValue": "100"
     },
 
     "KeyName" : {
@@ -66,7 +84,7 @@
       "Description" : "Jamulus Server Name",
       "Type": "String",
       "MinLength": "0",
-      "MaxLength": "1024"
+      "MaxLength": "20"
     },
 
     "JamulusServerInfoCity" : {
@@ -74,7 +92,7 @@
       "Description" : "Jamulus Server Location Information - City",
       "Type": "String",
       "MinLength": "0",
-      "MaxLength": "1024"
+      "MaxLength": "20"
     },
 
     "JamulusServerInfoLocale" : {
@@ -145,6 +163,9 @@
 
   "Mappings" : {
     "AWSInstanceType2Arch" : {
+      "t2.nano"     : { "Arch" : "HVM64" },
+      "t2.micro"    : { "Arch" : "HVM64" },
+      "t2.small"    : { "Arch" : "HVM64" },
       "t3.nano"     : { "Arch" : "HVM64" },
       "t3.micro"    : { "Arch" : "HVM64" },
       "t3.small"    : { "Arch" : "HVM64" },
@@ -154,14 +175,17 @@
     },
 
     "AWSInstanceType2NATArch" : {
+      "t2.nano"     : { "Arch" : "NATHVM64" },
+      "t2.micro"    : { "Arch" : "NATHVM64" },
+      "t2.small"    : { "Arch" : "NATHVM64" },
       "t3.nano"     : { "Arch" : "NATHVM64" },
       "t3.micro"    : { "Arch" : "NATHVM64" },
       "t3.small"    : { "Arch" : "NATHVM64" },
       "t3a.nano"    : { "Arch" : "NATHVM64" },
       "t3a.micro"   : { "Arch" : "NATHVM64" },
       "t3a.small"   : { "Arch" : "NATHVM64" }
-    }
-,
+    },
+
     "AWSRegionArch2AMI" : {
       "af-south-1"       : {"HVM64" : "ami-064cc455f8a1ef504", "HVMG2" : "NOT_SUPPORTED"},
       "ap-east-1"        : {"HVM64" : "ami-f85b1989", "HVMG2" : "NOT_SUPPORTED"},
@@ -187,7 +211,6 @@
       "us-west-1"        : {"HVM64" : "ami-088c153f74339f34c", "HVMG2" : "ami-0a7fc72dc0e51aa77"},
       "us-west-2"        : {"HVM64" : "ami-01fee56b22f308154", "HVMG2" : "ami-0fe84a5b4563d8f27"}
     }
-
   },
 
   "Resources" : {
@@ -541,6 +564,17 @@
           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
         "InstanceType" : { "Ref" : "InstanceType" },
         "CreditSpecification": { "CPUCredits" : { "Ref": "InstanceCreditSpecification" } },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": { "Ref" : "InstanceRootVolume" },
+              "DeleteOnTermination": "true",
+              "Encrypted": "false"
+            }
+          }
+        ],
         "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
         "KeyName" : { "Ref" : "KeyName" },
         "Tags": [
