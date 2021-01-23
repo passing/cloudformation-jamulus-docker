@@ -1,5 +1,7 @@
 # Jamulus Docker Cloudformation Template
 
+Use at your own risk!
+
 ## Template Features
 
 ### EC2 Instance
