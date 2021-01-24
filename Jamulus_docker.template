@@ -568,7 +568,7 @@
           {
             "DeviceName": "/dev/xvda",
             "Ebs": {
-              "VolumeType": "gp2",
+              "VolumeType": "gp3",
               "VolumeSize": { "Ref" : "InstanceRootVolume" },
               "DeleteOnTermination": "true",
               "Encrypted": "false"

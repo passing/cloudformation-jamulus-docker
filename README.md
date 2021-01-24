@@ -54,7 +54,7 @@ You pay a fixed price for the EC2 Instance and the EBS Volume attached to it:
 | | Unit Price | Quantity | Price/Month |
 |-|-|-|-|
 | EC2-Instance: `t3.nano` | $0.006 per Hour | 720 Hours / Month | $4,32 |
-| EBS-Volume: `gp2` | $0.119 per GB-month | 8 GB / Month | $0,95 |
+| EBS-Volume: `gp3` | $0.0952 per GB-month | 8 GB / Month | $0,76 |
 
 ### Data Transfer Costs
 
