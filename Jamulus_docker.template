@@ -613,12 +613,20 @@
           [
             { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"} },
             { "IpProtocol" : "udp", "FromPort" : "22124", "ToPort" : "22124", "CidrIp" : "0.0.0.0/0" }
-          ]
+          ],
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
+        ]
       }
     },
 
     "IPAddress" : {
-      "Type" : "AWS::EC2::EIP"
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
+        ]
+      }
     },
 
     "IPAssoc" : {
