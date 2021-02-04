@@ -563,6 +563,7 @@
         "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
         "InstanceType" : { "Ref" : "InstanceType" },
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "CreditSpecification": { "CPUCredits" : { "Ref": "InstanceCreditSpecification" } },
         "BlockDeviceMappings": [
           {
@@ -594,7 +595,13 @@
           "/opt/aws/bin/cfn-signal -e $? ",
           "         --stack ", { "Ref" : "AWS::StackName" },
           "         --resource JamulusServer ",
-          "         --region ", { "Ref" : "AWS::Region" }, "\n"
+          "         --region ", { "Ref" : "AWS::Region" }, "\n",
+
+
+          "# Add name tag to root EBS volume\n",
+          "AWS_INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)\n",
+          "ROOT_VOLUME_IDS=$(aws ec2 describe-instances --region ", { "Ref" : "AWS::Region" }, " --instance-id $AWS_INSTANCE_ID --output text --query Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId)\n",
+          "aws ec2 create-tags --resources $ROOT_VOLUME_IDS --region ", { "Ref" : "AWS::Region" }, " --tags Key=Name,Value=", { "Ref" : "AWS::StackName" } ,"\n"
         ]]}},
         "Monitoring": false
       },
@@ -616,6 +623,75 @@
           ],
         "Tags": [
           {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
+        ]
+      }
+    },
+
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "taginstancepolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:Describe*"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateTags"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
+        ]
+      }
+    },
+
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
         ]
       }
     },
