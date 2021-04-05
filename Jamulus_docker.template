@@ -108,7 +108,7 @@
       "Description" : "Jamulus Server Message",
       "Type": "String",
       "MinLength": "0",
-      "MaxLength": "1024"
+      "MaxLength": "1600"
     },
 
     "JamulusVersion" : {
