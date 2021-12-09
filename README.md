@@ -2,6 +2,11 @@
 
 Use at your own risk!
 
+## Requirements
+
+The template relies on a registered domain that is configured in the AWS account.
+The VPC must [support IPv6](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-migrate-ipv6.html)
+
 ## Template Features
 
 ### EC2 Instance
@@ -10,25 +15,18 @@ The template is limited to a few small low-cost general purpose Amazon EC2 insta
 Using the default `t3.nano` instance should be sufficient for most use cases.
 A `t2.micro` instance can be used [for free for 12 month](https://aws.amazon.com/free/), but it hast just 1 vCPU.
 
-### Elastic IP
-
-You can use the Elastic IP to connect to the Jamulus server in case it is private and to access the server with SSH.
-If you configure a Dynamic DNS record, you can use that instead.
-
 ### Jamulus Service
 
 Jamulus does not get installed on the server directly, but is launched as a docker container using the [grundic/jamulus-docker](https://github.com/grundic/jamulus-docker) image.  
 A sysvinit script is created to start and stop the docker container. That script is important so Cloudformation can restart the service when you change the configuration.
 
-### NoIP
+### Cloudwatch Metrics
 
-A script will update a Dynamic DNS record at [noip.com](https://www.noip.com) with the Elastic IP of your server. It will run once on Stack creation and weekly thereafter.
+The Server create a Cloudwatch Metric "JamulusUserCount" with the number of users connected to the Jamulus Server.
 
-(You can register 3 free Dynamic DNS hostnames at [noip.com](https://www.noip.com).)
+### DNS Record
 
-### Fail2Ban
-
-Fail2ban is setup to block IPs after failed SSH authentication attempts.
+A DNS record with both the IPv4 and IPv6 addresses of the server is added.
 
 ## Resource Usage
 
