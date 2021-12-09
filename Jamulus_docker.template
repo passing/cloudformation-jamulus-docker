@@ -94,7 +94,7 @@
     },
 
     "JamulusServerArguments" : {
-      "Default": "--multithreading --fastupdate",
+      "Default": "--multithreading --fastupdate --enableipv6 --delaypan",
       "Description" : "Jamulus Server Arguments",
       "Type": "String",
       "MinLength": "0",
@@ -327,7 +327,6 @@
               "/etc/jamulus/server.conf" : {
                 "content" : { "Fn::Join" : [ "\n", [
                   "--server",
-                  "--enableipv6",
                   { "Fn::Join" : [ " ", ["--numchannels", { "Ref" : "JamulusChannels" } ]]},
                   { "Fn::Join" : [ " ", ["--centralserver", { "Ref" : "JamulusCentralServer" } ]]},
                   { "Fn::Join" : [ " ", [
