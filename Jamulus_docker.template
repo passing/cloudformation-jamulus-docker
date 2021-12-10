@@ -12,7 +12,27 @@
 
     "DnsSubdomain": {
       "Default": "",
-      "Description" : "DNS Subdomain",
+      "Description" : "optional DNS Subdomain for IPv4 + Ipv6 record",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024",
+      "AllowedPattern" : "[^\\s]*",
+      "ConstraintDescription" : "must not contain spaces."
+    },
+
+    "DnsSubdomain4": {
+      "Default": "",
+      "Description" : "optional DNS Subdomain for IPv4 only record",
+      "Type": "String",
+      "MinLength": "0",
+      "MaxLength": "1024",
+      "AllowedPattern" : "[^\\s]*",
+      "ConstraintDescription" : "must not contain spaces."
+    },
+
+    "DnsSubdomain6": {
+      "Default": "",
+      "Description" : "optional DNS Subdomain for IPv6 record",
       "Type": "String",
       "MinLength": "0",
       "MaxLength": "1024",
@@ -149,6 +169,18 @@
       "MaxLength": "1024",
       "AllowedPattern" : "[^\\s]*",
       "ConstraintDescription" : "must not contain spaces."
+    }
+  },
+
+  "Conditions" : {
+    "CreateDns" : {
+      "Fn::Not": [ { "Fn::Equals": [ { "Ref": "DnsSubdomain" }, "" ] } ]
+    },
+    "CreateDns4" : {
+      "Fn::Not": [ { "Fn::Equals": [ { "Ref": "DnsSubdomain4" }, "" ] } ]
+    },
+    "CreateDns6" : {
+      "Fn::Not": [ { "Fn::Equals": [ { "Ref": "DnsSubdomain6" }, "" ] } ]
     }
   },
 
@@ -464,7 +496,7 @@
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
                   "set -eo pipefail",
-                  "region=eu-central-1",
+                  { "Fn::Join": [ "", ["region=", { "Ref": "AWS::Region" } ]] },
                   "instance=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)",
                   "value=$(echo -en \"\\x00\\x00\\xea\\x03\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x07\\x14\" | nc -u -w 1 localhost 22124 | head -c 12 | tail -c 1 | hexdump -e '1/1 \"%u\\n\"')",
                   { "Fn::Join" : ["", [
@@ -655,6 +687,7 @@
 
     "RecordSetGroup": {
       "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "CreateDns",
       "Properties": {
         "HostedZoneId": { "Ref" : "DnsHostedZoneId" },
         "RecordSets": [
@@ -671,6 +704,30 @@
             "ResourceRecords": [{ "Ref" : "Ipv6Address" }]
           }
         ]
+      }
+    },
+
+    "RecordSet4": {
+      "Type": "AWS::Route53::RecordSet",
+      "Condition": "CreateDns4",
+      "Properties": {
+        "HostedZoneId": { "Ref" : "DnsHostedZoneId" },
+        "Name": { "Ref" : "DnsSubdomain4" },
+        "Type": "A",
+        "TTL": "300",
+        "ResourceRecords": [{ "Ref" : "IPAddress" }]
+      }
+    },
+
+    "RecordSet6": {
+      "Type": "AWS::Route53::RecordSet",
+      "Condition": "CreateDns6",
+      "Properties": {
+        "HostedZoneId": { "Ref" : "DnsHostedZoneId" },
+        "Name": { "Ref" : "DnsSubdomain6" },
+        "Type": "AAAA",
+        "TTL": "300",
+        "ResourceRecords": [{ "Ref" : "Ipv6Address" }]
       }
     }
   },
