@@ -4,8 +4,8 @@ Use at your own risk!
 
 ## Requirements
 
-The template relies on a registered domain that is configured in the AWS account.
 The VPC must [support IPv6](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-migrate-ipv6.html)
+For DNS records to be created, there must be a registered domain that is configured in the AWS account.
 
 ## Template Features
 
@@ -26,7 +26,7 @@ The Server create a Cloudwatch Metric "JamulusUserCount" with the number of user
 
 ### DNS Record
 
-A DNS record with both the IPv4 and IPv6 addresses of the server is added.
+DNS records can be created that target both the IPv4 and IPv6 addresses of the server, or just one of them.
 
 ## Resource Usage
 
