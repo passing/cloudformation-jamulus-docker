@@ -4,7 +4,8 @@ Use at your own risk!
 
 ## Requirements
 
-The VPC must [support IPv6](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-migrate-ipv6.html)
+The VPC must [support IPv6](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-migrate-ipv6.html).
+
 For DNS records to be created, there must be a registered domain that is configured in the AWS account.
 
 ## Template Features
