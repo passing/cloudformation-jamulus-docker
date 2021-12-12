@@ -333,6 +333,7 @@
                     ]]}
                   ]]},
                   "--welcomemessage /etc/jamulus/welcomemessage.html",
+                  "--htmlstatus /etc/jamulus/status.html",
                   { "Ref" : "JamulusServerArguments" },
                   ""
                 ]]},
@@ -357,7 +358,7 @@
                     "--net=host",
                     "--entrypoint=''",
                     "--cap-add=sys_nice",
-                    "--volume=/etc/jamulus:/etc/jamulus:ro",
+                    "--volume=/etc/jamulus:/etc/jamulus",
                     "--env", { "Fn::Join" : ["=", ["TZ", { "Ref" : "JamulusServerTimezone" } ] ] },
                     { "Fn::Join" : ["", ["grundic/jamulus:", { "Ref" : "JamulusVersion" }]] },
                     "xargs -a /etc/jamulus/server.conf nice -n -20 Jamulus"
