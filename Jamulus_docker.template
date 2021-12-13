@@ -583,7 +583,9 @@
           [
             { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"} },
             { "IpProtocol" : "udp", "FromPort" : "22124", "ToPort" : "22124", "CidrIp" : "0.0.0.0/0" },
-            { "IpProtocol" : "udp", "FromPort" : "22124", "ToPort" : "22124", "CidrIpv6": "::/0" }
+            { "IpProtocol" : "udp", "FromPort" : "22124", "ToPort" : "22124", "CidrIpv6": "::/0" },
+            { "IpProtocol" : "icmp", "FromPort" : "8", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "icmpv6", "FromPort" : "128", "ToPort" : "0", "CidrIpv6": "::/0" }
           ],
         "Tags": [
           {"Key": "Name", "Value": { "Ref" : "AWS::StackName" } }
