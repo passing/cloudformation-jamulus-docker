@@ -497,7 +497,6 @@
               "/usr/local/sbin/write_metric_data" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash",
-                  "set -eo pipefail",
                   { "Fn::Join": [ "", ["region=", { "Ref": "AWS::Region" } ]] },
                   "instance=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)",
                   "value=$(grep -c '^  <li>' /etc/jamulus/status.html)",
