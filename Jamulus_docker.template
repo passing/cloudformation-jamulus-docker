@@ -320,8 +320,8 @@
                   "#!/bin/sh",
                   "exec nice -n 20 Jamulus \\",
                   "--server \\",
-                  { "Fn::Join" : [ " ", ["--numchannels", { "Ref" : "JamulusChannels" }, " \\" ]]},
-                  { "Fn::Join" : [ " ", ["--directoryserver", { "Ref" : "JamulusDirectoryServer" }, " \\" ]]},
+                  { "Fn::Join" : [ " ", ["--numchannels", { "Ref" : "JamulusChannels" }, "\\" ]]},
+                  { "Fn::Join" : [ " ", ["--directoryserver", { "Ref" : "JamulusDirectoryServer" }, "\\" ]]},
                   { "Fn::Join" : [ " ", [
                     "--serverinfo",
                     { "Fn::Join" : [ "", [
@@ -339,7 +339,7 @@
                   { "Ref" : "JamulusServerArguments" },
                   ""
                 ]]},
-                "mode"  : "000644",
+                "mode"  : "000755",
                 "owner" : "root",
                 "group" : "root"
               },
