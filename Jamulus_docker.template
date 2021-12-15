@@ -499,12 +499,8 @@
                   "set -eo pipefail",
                   { "Fn::Join": [ "", ["region=", { "Ref": "AWS::Region" } ]] },
                   "instance=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)",
-                  "value=$(echo -en \"\\x00\\x00\\xea\\x03\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x07\\x14\" | nc -u -w 1 localhost 22124 | head -c 12 | tail -c 1 | hexdump -e '1/1 \"%u\\n\"')",
-                  { "Fn::Join" : ["", [
-                    "aws cloudwatch put-metric-data --region $region --metric-name JamulusUserCount --dimensions \"Instance Name=",
-                    { "Ref" : "AWS::StackName" },
-                    ",Instance=$instance\" --namespace Custom --value $value"
-                  ]]}
+                  "value=$(grep -c '^  <li>' /etc/jamulus/status.html)",
+                  "aws cloudwatch put-metric-data --region $region --namespace Custom --metric-name JamulusUserCount --dimensions InstanceId=$instance --value $value"
                 ]]},
                 "mode"  : "000744",
                 "owner" : "root",
