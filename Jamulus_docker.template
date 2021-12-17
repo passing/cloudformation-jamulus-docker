@@ -318,7 +318,7 @@
               "/etc/jamulus/server.sh" : {
                 "content" : { "Fn::Join" : [ "\n", [
                   "#!/bin/sh",
-                  "exec nice -n 20 Jamulus \\",
+                  "exec nice -n -20 Jamulus \\",
                   "--server \\",
                   { "Fn::Join" : [ " ", ["--numchannels", { "Ref" : "JamulusChannels" }, "\\" ]]},
                   { "Fn::Join" : [ " ", ["--directoryserver", { "Ref" : "JamulusDirectoryServer" }, "\\" ]]},
